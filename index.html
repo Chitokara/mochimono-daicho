@@ -138,12 +138,13 @@ var CATS=["家電","家具・インテリア","衣類・靴","日用品","キッ
 var KEY="mono-ichiran-v1";
 var items=[],cat="すべて",editId=null,photo="";
 function load(){try{var r=localStorage.getItem(KEY);if(r)items=JSON.parse(r)||[]}catch(e){items=[]}}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){say("保存できませんでした。写真が多すぎる可能性があります。不要な写真を外してください。")}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(items));return true}catch(e){say("保存できませんでした。写真が多すぎる可能性があります。不要な写真を外してください。");return false}}
 var $=function(i){return document.getElementById(i)};
 function say(t){$("msg").textContent=t}
+function today(){var n=new Date();return n.getFullYear()+"-"+("0"+(n.getMonth()+1)).slice(-2)+"-"+("0"+n.getDate()).slice(-2)}
 function yen(n){return "¥"+Number(n||0).toLocaleString("ja-JP")}
 function elapsed(d){
-  if(!d)return"";var a=new Date(d),n=new Date();
+  if(!d)return"";var p=d.split("-"),a=new Date(+p[0],+p[1]-1,+p[2]),n=new Date();
   var m=(n.getFullYear()-a.getFullYear())*12+n.getMonth()-a.getMonth();
   if(n.getDate()<a.getDate())m--;
   if(m<0)return"購入予定";if(m<1)return"購入から1か月未満";
@@ -192,7 +193,7 @@ function openForm(id){
   $("dt").textContent=it.id?"物品を編集":"物品を登録";
   $("f-name").value=it.name||"";
   $("f-cat").value=it.cat||(cat!=="すべて"?cat:CATS[0]);
-  $("f-date").value=it.date||new Date().toISOString().slice(0,10);
+  $("f-date").value=it.date||today();
   $("f-price").value=it.price||"";
   $("f-qty").value=it.qty||1;
   $("f-place").value=it.place||"";
@@ -223,9 +224,11 @@ function save(){
   if(!name){$("err").textContent="名前を入力してください。";return}
   var o={name:name,cat:$("f-cat").value,date:$("f-date").value,price:Math.max(0,parseInt($("f-price").value,10)||0),
     qty:Math.max(1,parseInt($("f-qty").value,10)||1),place:$("f-place").value.trim(),note:$("f-note").value.trim(),photo:photo};
+  var prev=items.slice();
   if(editId){items=items.map(function(i){return i.id===editId?Object.assign({},i,o):i})}
   else{o.id="i"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);items.push(o)}
-  persist();$("dlg").close();render();
+  if(!persist()){items=prev;$("err").textContent="保存できませんでした。写真を外すか、不要な項目を削除してください。";return}
+  $("dlg").close();render();
 }
 $("f-cat").innerHTML=CATS.map(function(c){return"<option>"+c+"</option>"}).join("");
 $("add").onclick=function(){openForm()};
